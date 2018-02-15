@@ -4088,16 +4088,6 @@ xcoff_create_ldrel (bfd *output_bfd, struct xcoff_final_link_info *flinfo,
 
   ldrel.l_rtype = (irel->r_size << 8) | irel->r_type;
   ldrel.l_rsecnm = output_section->target_index;
-  if (xcoff_hash_table (flinfo->info)->textro
-      && strcmp (output_section->name, ".text") == 0)
-    {
-      _bfd_error_handler
-	/* xgettext:c-format */
-	(_("%pB: loader reloc in read-only section %pA"),
-	 reference_bfd, output_section);
-      bfd_set_error (bfd_error_invalid_operation);
-      return FALSE;
-    }
   bfd_xcoff_swap_ldrel_out (output_bfd, &ldrel, flinfo->ldrel);
   flinfo->ldrel += bfd_xcoff_ldrelsz (output_bfd);
   return TRUE;
