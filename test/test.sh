@@ -15,4 +15,4 @@ CXX="${TARGET}-g++"
 LIBPATH=${ROOT}/sysroot/opt/freeware/lib/pthread/
 export AS CC CXX LIBPATH
 make clean
-make
+make -k
