@@ -1,0 +1,50 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/home/jamesr/test/aix6.1-toolchain/powerpc-ibm-aix6.1/bin/ld",
+            "args": ["--sysroot=/home/jamesr/test/aix6.1-toolchain/sysroot",
+                "-bpT:0x10000000",
+                "-bpD:0x20000000",
+                "-btextro",
+                "-o",
+                "/home/jamesr/test/binutils-gdb/test/t",
+                "/home/jamesr/test/aix6.1-toolchain/sysroot/usr/lib/crt0.o",
+                "/home/jamesr/test/binutils-gdb/test/t_consdes.o",
+                "/home/jamesr/test/aix6.1-toolchain/lib/gcc/powerpc-ibm-aix6.1/6.4.0/crtcxa.o",
+                "/home/jamesr/test/aix6.1-toolchain/lib/gcc/powerpc-ibm-aix6.1/6.4.0/crtdbase.o",
+                "-L/home/jamesr/test/aix6.1-toolchain/sysroot/opt/freeware/lib/pthread",
+                "-L/home/jamesr/test/aix6.1-toolchain/lib/gcc/powerpc-ibm-aix6.1/6.4.0",
+                "-L/home/jamesr/test/aix6.1-toolchain/lib/gcc",
+                "-L/home/jamesr/test/aix6.1-toolchain/powerpc-ibm-aix6.1/lib",
+                "-L/home/jamesr/test/aix6.1-toolchain/sysroot/usr/lib",
+                "-lstdc++", "-lgcc_s",
+                "-blibpath", "/usr/lib:/opt/freeware/lib/pthread",
+                "/home/jamesr/test/binutils-gdb/test/t.o",
+                "-lstdc++", "-lm", "-lgcc_s",
+                "/home/jamesr/test/aix6.1-toolchain/lib/gcc/powerpc-ibm-aix6.1/6.4.0/libgcc.a",
+                "-lc", "-lgcc_s",
+                "/home/jamesr/test/aix6.1-toolchain/lib/gcc/powerpc-ibm-aix6.1/6.4.0/libgcc.a",
+                "-binitfini:_GLOBAL__FI_t:_GLOBAL__FD_t"
+                ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

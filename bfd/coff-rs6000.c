@@ -981,7 +981,7 @@ reloc_howto_type xcoff_howto_table[] =
 	 0,			/* rightshift */
 	 2,			/* size (0 = byte, 1 = short, 2 = long) */
 	 26,			/* bitsize */
-	 FALSE,			/* pc_relative */
+	 TRUE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_signed, /* complain_on_overflow */
 	 0,			/* special_function */
@@ -1090,7 +1090,7 @@ _bfd_xcoff_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
   switch (code)
     {
     case BFD_RELOC_PPC_B26:
-      return &xcoff_howto_table[0xa];
+      return &xcoff_howto_table[0x1a];
     case BFD_RELOC_PPC_BA16:
       return &xcoff_howto_table[0x1c];
     case BFD_RELOC_PPC_BA26:
@@ -1107,6 +1107,8 @@ _bfd_xcoff_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
       return &xcoff_howto_table[0];
     case BFD_RELOC_NONE:
       return &xcoff_howto_table[0xf];
+    case BFD_RELOC_PPC_NEG:
+      return &xcoff_howto_table[0x1];
     default:
       return NULL;
     }
@@ -3349,6 +3351,8 @@ xcoff_ppc_relocate_section (bfd *output_bfd,
 	 merely used to prevent garbage collection from occurring for
 	 the csect including the symbol which it references.  */
       if (rel->r_type == R_REF)
+	continue;
+      if (rel->r_vaddr == 0)
 	continue;
 
       /* howto */
