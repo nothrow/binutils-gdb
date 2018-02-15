@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "typeinfo": "c",
+        "string_view": "cpp",
+        "system_error": "cpp",
+        "thread": "cpp"
+    }
+}

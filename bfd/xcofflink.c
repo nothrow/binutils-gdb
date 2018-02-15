@@ -200,7 +200,7 @@ struct xcoff_final_link_info
 
 static bfd_boolean xcoff_mark (struct bfd_link_info *, asection *);
 
-
+static void xcoff_strip_neg_relocs(asection *sec);
 
 /* Routines to read XCOFF dynamic information.  This don't really
    belong here, but we already have the ldsym manipulation routines
@@ -1304,6 +1304,9 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 	{
 	  reloc_info[o->target_index].relocs =
 	    xcoff_read_internal_relocs (abfd, o, TRUE, NULL, FALSE, NULL);
+
+    xcoff_strip_neg_relocs(o);
+
 	  amt = o->reloc_count;
 	  amt *= sizeof (asection *);
 	  reloc_info[o->target_index].csects = bfd_zmalloc (amt);
@@ -1366,7 +1369,7 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 	  if (csect != NULL)
 	    *csect_cache = csect;
 	  else if (first_csect == NULL
-                   || sym.n_sclass == C_FILE || sym.n_sclass == C_DWARF)
+		   || sym.n_sclass == C_FILE || sym.n_sclass == C_DWARF)
 	    *csect_cache = coff_section_from_bfd_index (abfd, sym.n_scnum);
 	  else
 	    *csect_cache = NULL;
@@ -1789,7 +1792,7 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 		bfd_set_error (bfd_error_bad_value);
 		goto error_return;
 	      }
- 	    csect = section;
+	    csect = section;
 	    value = sym.n_value - csect->vma;
 	  }
 	  break;
@@ -1926,7 +1929,7 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 	     We also have to handle the case of statically linking a
 	     shared object, which will cause symbol redefinitions,
 	     although this is an easier case to detect.  */
- 	  else if (info->output_bfd->xvec == abfd->xvec)
+	  else if (info->output_bfd->xvec == abfd->xvec)
 	    {
 	      if (! bfd_is_und_section (section))
 		*sym_hash = xcoff_link_hash_lookup (xcoff_hash_table (info),
@@ -2021,6 +2024,7 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 	  BFD_ASSERT (last_real->next == first_csect);
 	  last_real->next = NULL;
 	  flags = (sym.n_sclass == C_EXT ? BSF_GLOBAL : BSF_WEAK);
+		if ((*sym_hash)->root.type == bfd_link_hash_undefweak) flags = BSF_WEAK;
 	  if (! (_bfd_generic_link_add_one_symbol
 		 (info, abfd, name, flags, section, value,
 		  NULL, copy, TRUE,
@@ -2039,7 +2043,7 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 		  = csect->alignment_power;
 	    }
 
- 	  if (info->output_bfd->xvec == abfd->xvec)
+	  if (info->output_bfd->xvec == abfd->xvec)
 	    {
 	      int flag;
 
@@ -2080,7 +2084,7 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
     {
       /* Debugging sections have no csects.  */
       if (bfd_get_section_flags (abfd, o) & SEC_DEBUGGING)
-        continue;
+	continue;
 
       /* Reset the section size and the line number count, since the
 	 data is now attached to the csects.  Don't reset the size of
@@ -2114,7 +2118,7 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 	      /* We identify all function symbols that are the target
 		 of a relocation, so that we can create glue code for
 		 functions imported from dynamic objects.  */
- 	      if (info->output_bfd->xvec == abfd->xvec
+	      if (info->output_bfd->xvec == abfd->xvec
 		  && *rel_csect != bfd_und_section_ptr
 		  && obj_xcoff_sym_hashes (abfd)[rel->r_symndx] != NULL)
 		{
@@ -2366,7 +2370,7 @@ xcoff_link_check_ar_symbols (bfd *abfd,
 	     undefined references in shared objects.  */
 	  if (h != NULL
 	      && h->type == bfd_link_hash_undefined
- 	      && (info->output_bfd->xvec != abfd->xvec
+	      && (info->output_bfd->xvec != abfd->xvec
 		  || (((struct xcoff_link_hash_entry *) h)->flags
 		      & XCOFF_DEF_DYNAMIC) == 0))
 	    {
@@ -2680,8 +2684,10 @@ xcoff_need_ldrel_p (struct bfd_link_info *info, struct internal_reloc *rel,
 
       return TRUE;
 
-    case R_POS:
     case R_NEG:
+      return FALSE;
+      // fall through
+    case R_POS:
     case R_RL:
     case R_RLA:
       /* Absolute relocations against absolute symbols can be
@@ -2893,6 +2899,23 @@ xcoff_mark_symbol_by_name (struct bfd_link_info *info,
   return TRUE;
 }
 
+void xcoff_strip_neg_relocs(asection *sec)
+{
+	struct internal_reloc *rel;
+	rel = xcoff_read_internal_relocs (sec->owner, sec, TRUE, NULL, FALSE, NULL);
+	if (rel == 0 || sec->reloc_count == 0) return;
+
+	for(unsigned int myi = 0 ; myi < sec->reloc_count - 1 ; ++myi)
+	{
+		if (rel[myi].r_type == R_NEG && rel[myi + 1].r_type == R_POS && rel[myi].r_vaddr == rel[myi + 1].r_vaddr)
+		{
+			memmove(rel + myi, rel + myi + 1, (sec->reloc_count - myi - 1) * sizeof(rel[0]));
+			sec->reloc_count -= 1;
+			rel[myi].r_type = R_REL;
+		}
+	}
+}
+
 /* The mark phase of garbage collection.  For a given section, mark
    it, and all the sections which define symbols to which it refers.
    Because this function needs to look at the relocs, we also count
@@ -2939,6 +2962,7 @@ xcoff_mark (struct bfd_link_info *info, asection *sec)
 					    NULL, FALSE, NULL);
 	  if (rel == NULL)
 	    return FALSE;
+		
 	  relend = rel + sec->reloc_count;
 	  for (; rel < relend; rel++)
 	    {
@@ -3021,7 +3045,7 @@ xcoff_sweep (struct bfd_link_info *info)
 		  || o == xcoff_hash_table (info)->loader_section
 		  || o == xcoff_hash_table (info)->linkage_section
 		  || o == xcoff_hash_table (info)->descriptor_section
-                  || (bfd_get_section_flags (sub, o) & SEC_DEBUGGING)
+		  || (bfd_get_section_flags (sub, o) & SEC_DEBUGGING)
 		  || strcmp (o->name, ".debug") == 0)
 		o->flags |= SEC_MARK;
 	      else
@@ -3743,6 +3767,7 @@ bfd_xcoff_size_dynamic_sections (bfd *output_bfd,
 		  if (! xcoff_mark (info, o))
 		    goto error_return;
 		}
+
 	    }
 	}
     }
@@ -4736,8 +4761,8 @@ xcoff_link_input_bfd (struct xcoff_final_link_info *flinfo,
       flinfo->last_file.n_value = output_index;
       bfd_coff_swap_sym_out (output_bfd, (void *) &flinfo->last_file,
 			     (void *) (flinfo->outsyms
- 				    + ((flinfo->last_file_index - syment_base)
- 				       * osymesz)));
+				    + ((flinfo->last_file_index - syment_base)
+				       * osymesz)));
     }
 
   /* Write the modified symbols to the output file.  */
@@ -4943,24 +4968,24 @@ xcoff_link_input_bfd (struct xcoff_final_link_info *flinfo,
 			     this case, but I don't think it's worth it.  */
 			  is = flinfo->internal_syms + r_symndx;
 
-                          if (is->n_sclass != C_DWARF)
-                            {
-                              name = (_bfd_coff_internal_syment_name
-                                      (input_bfd, is, buf));
+			  if (is->n_sclass != C_DWARF)
+			    {
+			      name = (_bfd_coff_internal_syment_name
+				      (input_bfd, is, buf));
 
-                              if (name == NULL)
-                                return FALSE;
+			      if (name == NULL)
+				return FALSE;
 
 			      (*flinfo->info->callbacks->unattached_reloc)
 				(flinfo->info, name,
 				 input_bfd, o, irel->r_vaddr);
-                            }
+			    }
 			}
 		    }
 		}
 
 	      if ((o->flags & SEC_DEBUGGING) == 0
-                  && xcoff_need_ldrel_p (flinfo->info, irel, h))
+		  && xcoff_need_ldrel_p (flinfo->info, irel, h))
 		{
 		  asection *sec;
 

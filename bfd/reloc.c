@@ -439,6 +439,7 @@ bfd_get_reloc_size (reloc_howto_type *howto)
     case 8: return 16;
     case -1: return 2;
     case -2: return 4;
+    case -4: return 8;
     default: abort ();
     }
 }
@@ -1307,6 +1308,14 @@ space consuming.  For each target:
 	bfd_vma x = bfd_get_64 (abfd, data);
 	DOIT (x);
 	bfd_put_64 (abfd, x, data);
+      }
+      break;
+    case -4:
+      {
+	bfd_vma x = bfd_get_64 (abfd, data);
+	relocation = -relocation;
+	DOIT (x);
+	bfd_put_64 (abfd, (bfd_vma) x, data);
       }
       break;
     default:
@@ -2958,6 +2967,8 @@ ENUMX
   BFD_RELOC_PPC64_ADDR64_LOCAL
 ENUMX
   BFD_RELOC_PPC64_ENTRY
+ENUMX
+  BFD_RELOC_PPC_NEG
 ENUMDOC
   Power(rs6000) and PowerPC relocations.
 

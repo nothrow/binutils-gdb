@@ -6142,17 +6142,48 @@ md_pcrel_from_section (fixS *fixp, segT sec ATTRIBUTE_UNUSED)
 
 #ifdef OBJ_XCOFF
 
-/* This is called to see whether a fixup should be adjusted to use a
-   section symbol.  We take the opportunity to change a fixup against
-   a symbol in the TOC subsegment into a reloc against the
-   corresponding .tc symbol.  */
-
-int
-ppc_fix_adjustable (fixS *fix)
+/* Possibly adjust the reloc to be against the csect.  */
+symbolS *
+ppc_can_adjust_to_csect(symbolS *sym);
+symbolS *
+ppc_can_adjust_to_csect(symbolS *sym)
 {
-  valueT val = resolve_symbol_value (fix->fx_addsy);
-  segT symseg = S_GET_SEGMENT (fix->fx_addsy);
-  TC_SYMFIELD_TYPE *tc;
+  segT symseg = sym ? S_GET_SEGMENT (sym) : 0;
+  TC_SYMFIELD_TYPE *tc = sym ? symbol_get_tc (sym) : NULL;
+  valueT val = sym ? resolve_symbol_value (sym) : 0;
+  if (sym 
+      && tc->subseg == 0
+      && tc->symbol_class != XMC_TC0
+      && tc->symbol_class != XMC_TC
+      && symseg != bss_section
+      /* Don't adjust if this is a reloc in the toc section.  */
+      && (symseg != data_section
+	  || ppc_toc_csect == NULL
+	  || val < ppc_toc_frag->fr_address
+	  || (ppc_after_toc_frag != NULL
+	      && val >= ppc_after_toc_frag->fr_address)))
+    {
+      symbolS *csect = symbol_get_tc (sym)->within;
+
+      /* If the symbol was not declared by a label (eg: a section symbol),
+         use the section instead of the csect.  This doesn't happen in
+         normal AIX assembly code.  */
+      if (csect == NULL)
+        csect = seg_info (S_GET_SEGMENT (sym))->sym;
+
+      return csect;
+    }
+  return NULL;
+}
+
+static int
+ppc_fix_adjustable_symbol (fixS *fix, symbolS **symbol, int multiplier);
+int
+ppc_fix_adjustable_symbol (fixS *fix, symbolS **symbol, int multiplier)
+{
+  valueT val = resolve_symbol_value (*symbol);
+  segT symseg = S_GET_SEGMENT (*symbol);
+  symbolS *csect;
 
   if (symseg == absolute_section)
     return 0;
@@ -6162,7 +6193,7 @@ ppc_fix_adjustable (fixS *fix)
     return 1;
 
   if (ppc_toc_csect != (symbolS *) NULL
-      && fix->fx_addsy != ppc_toc_csect
+      && *symbol != ppc_toc_csect
       && symseg == data_section
       && val >= ppc_toc_frag->fr_address
       && (ppc_after_toc_frag == (fragS *) NULL
@@ -6182,8 +6213,8 @@ ppc_fix_adjustable (fixS *fix)
 	    break;
 	  if (val == resolve_symbol_value (sy))
 	    {
-	      fix->fx_addsy = sy;
-	      fix->fx_addnumber = val - ppc_toc_frag->fr_address;
+	      *symbol = sy;
+        fix->fx_addnumber += multiplier * (val - ppc_toc_frag->fr_address);
 	      return 0;
 	    }
 	}
@@ -6193,44 +6224,39 @@ ppc_fix_adjustable (fixS *fix)
     }
 
   /* Possibly adjust the reloc to be against the csect.  */
-  tc = symbol_get_tc (fix->fx_addsy);
-  if (tc->subseg == 0
-      && tc->symbol_class != XMC_TC0
-      && tc->symbol_class != XMC_TC
-      && symseg != bss_section
-      /* Don't adjust if this is a reloc in the toc section.  */
-      && (symseg != data_section
-	  || ppc_toc_csect == NULL
-	  || val < ppc_toc_frag->fr_address
-	  || (ppc_after_toc_frag != NULL
-	      && val >= ppc_after_toc_frag->fr_address)))
+  if ((csect = ppc_can_adjust_to_csect(*symbol)) != NULL)
     {
-      symbolS *csect = tc->within;
-
-      /* If the symbol was not declared by a label (eg: a section symbol),
-         use the section instead of the csect.  This doesn't happen in
-         normal AIX assembly code.  */
-      if (csect == NULL)
-        csect = seg_info (symseg)->sym;
-
-      fix->fx_offset += val - symbol_get_frag (csect)->fr_address;
-      fix->fx_addsy = csect;
-
-      return 0;
+      fix->fx_offset += multiplier * (val - symbol_get_frag (csect)->fr_address);
+      *symbol = csect;
     }
 
   /* Adjust a reloc against a .lcomm symbol to be against the base
      .lcomm.  */
   if (symseg == bss_section
-      && ! S_IS_EXTERNAL (fix->fx_addsy))
+      && ! S_IS_EXTERNAL (*symbol))
     {
-      symbolS *sy = symbol_get_frag (fix->fx_addsy)->fr_symbol;
+      symbolS *sy = symbol_get_frag (*symbol)->fr_symbol;
 
-      fix->fx_offset += val - resolve_symbol_value (sy);
-      fix->fx_addsy = sy;
+      fix->fx_offset += multiplier * (val - resolve_symbol_value (sy));
+      *symbol = sy;
     }
 
   return 0;
+}
+
+/* This is called to see whether a fixup should be adjusted to use a
+   section symbol.  We take the opportunity to change a fixup against
+   a symbol in the TOC subsegment into a reloc against the
+   corresponding .tc symbol.  */
+
+int
+ppc_fix_adjustable (fixS *fix)
+{
+  int r;
+  r = ppc_fix_adjustable_symbol(fix, &fix->fx_addsy, 1);
+  if (r != 0 || !fix->fx_subsy) return r;
+  r = ppc_fix_adjustable_symbol(fix, &fix->fx_subsy, -1);
+  return r;
 }
 
 /* A reloc from one csect to another must be kept.  The assembler
@@ -6459,6 +6485,20 @@ ppc_handle_align (struct frag *fragP)
 	    md_number_to_chars (dest, 0x60210000, 4);
 	}
     }
+}
+
+/*
+ * If the resulting fix would be negative then force a relocation.
+ */
+int
+ppc_force_relocation_sub_same(fixS *fixP, segT seg)
+{
+  if (!fixP->fx_addsy || !fixP->fx_subsy) return !SEG_NORMAL(seg);
+  if (S_GET_VALUE (fixP->fx_addsy) < S_GET_VALUE (fixP->fx_subsy))
+    {
+      return TRUE;
+    }
+  return !SEG_NORMAL(seg);
 }
 
 /* Apply a fixup to the object code.  This is called for all the
@@ -7100,27 +7140,71 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg)
 
 /* Generate a reloc for a fixup.  */
 
-arelent *
+arelent **
 tc_gen_reloc (asection *seg ATTRIBUTE_UNUSED, fixS *fixp)
 {
   arelent *reloc;
+  static arelent *relocs[3];
 
-  reloc = XNEW (arelent);
+  relocs[0] = reloc = XNEW (arelent);
+  relocs[1] = NULL;
 
   reloc->sym_ptr_ptr = XNEW (asymbol *);
   *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_addsy);
   reloc->address = fixp->fx_frag->fr_address + fixp->fx_where;
+  
   reloc->howto = bfd_reloc_type_lookup (stdoutput, fixp->fx_r_type);
   if (reloc->howto == (reloc_howto_type *) NULL)
     {
       as_bad_where (fixp->fx_file, fixp->fx_line,
 		    _("reloc %d not supported by object file format"),
 		    (int) fixp->fx_r_type);
-      return NULL;
+      relocs[0] = NULL;
+      return relocs;
     }
   reloc->addend = fixp->fx_addnumber;
 
-  return reloc;
+  /* We expand a subtraction into an R_POS and R_NEG */
+  if (fixp->fx_subsy && fixp->fx_addsy)
+    {
+      if (ppc_obj64)
+        {
+          reloc->howto = bfd_reloc_type_lookup (stdoutput, BFD_RELOC_64);
+        }
+
+      /* If this is negative then we should put the relocs the other way around */
+      if (S_GET_VALUE (fixp->fx_addsy) < S_GET_VALUE (fixp->fx_subsy))
+        {
+          relocs[1] = reloc;
+          relocs[0] = reloc = XNEW (arelent);
+          relocs[2] = NULL;
+        }
+      else
+        {
+          relocs[1] = reloc = XNEW (arelent);
+          relocs[2] = NULL;
+        }
+
+      bfd_reloc_code_real_type code = BFD_RELOC_PPC_NEG;
+      
+      reloc->sym_ptr_ptr = XNEW (asymbol *);
+      *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_subsy);
+      reloc->address = fixp->fx_frag->fr_address + fixp->fx_where;
+      
+      reloc->howto = bfd_reloc_type_lookup (stdoutput, code);
+      reloc->addend = fixp->fx_addnumber;
+     
+      if (reloc->howto == (reloc_howto_type *) NULL)
+        {
+          as_bad_where (fixp->fx_file, fixp->fx_line,
+            _("reloc %d not supported by object file format"),
+            code);
+          relocs[0] = NULL;
+          return relocs;
+        }
+    }
+
+  return relocs;
 }
 
 void

@@ -3835,7 +3835,7 @@ save_section_vma (const bfd *abfd, struct dwarf2_debug *stash)
   stash->sec_vma = bfd_malloc (sizeof (*stash->sec_vma) * abfd->section_count);
   if (stash->sec_vma == NULL)
     return FALSE;
-  for (i = 0, s = abfd->sections; i < abfd->section_count; i++, s = s->next)
+  for (i = 0, s = abfd->sections; s && i < abfd->section_count; i++, s = s->next)
     {
       if (s->output_section != NULL)
 	stash->sec_vma[i] = s->output_section->vma + s->output_offset;
