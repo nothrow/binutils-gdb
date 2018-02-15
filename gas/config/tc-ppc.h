@@ -243,6 +243,11 @@ extern void ppc_elf_end (void);
 extern int ppc_force_relocation (struct fix *);
 #endif
 
+#if defined (OBJ_XCOFF)
+#define TC_FORCE_RELOCATION_SUB_SAME(FIX, SEG) ppc_force_relocation_sub_same(FIX, SEG)
+extern int ppc_force_relocation_sub_same(struct fix *, segT);
+#endif
+
 #ifdef OBJ_ELF
 /* Don't allow the generic code to convert fixups involving the
    subtraction of a label in the current section to pc-relative if we
@@ -269,7 +274,9 @@ extern int ppc_force_relocation (struct fix *);
      || (FIX)->fx_r_type == BFD_RELOC_PPC64_D28))
 #endif
 
-#define TC_VALIDATE_FIX_SUB(FIX, SEG) 0
+#define RELOC_EXPANSION_POSSIBLE
+#define MAX_RELOC_EXPANSION 2
+#define UNDEFINED_DIFFERENCE_OK
 
 /* Various frobbings of labels and their addresses.  */
 #define md_start_line_hook() ppc_start_line_hook ()

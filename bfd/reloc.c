@@ -283,7 +283,7 @@ SUBSUBSECTION
 CODE_FRAGMENT
 .struct reloc_howto_struct
 .{
-.  {* The type field has mainly a documentary use - the back end can
+.  {*  The type field has mainly a documentary use - the back end can
 .     do what it wants with it, though normally the back end's idea of
 .     an external reloc number is stored in this field.  *}
 .  unsigned int type;
@@ -294,15 +294,15 @@ CODE_FRAGMENT
 .  unsigned int size:3;
 .
 .  {* The number of bits in the field to be relocated.  This is used
-.     when doing overflow checking.  *}
+.      when doing overflow checking.  *}
 .  unsigned int bitsize:7;
 .
 .  {* The value the final relocation is shifted right by.  This drops
 .     unwanted data from the relocation.  *}
 .  unsigned int rightshift:6;
 .
-.  {* The bit position of the reloc value in the destination.
-.     The relocated value is left shifted by this amount.  *}
+.  {*  The bit position of the reloc value in the destination.
+.      The relocated value is left shifted by this amount.  *}
 .  unsigned int bitpos:6;
 .
 .  {* What type of overflow error should be checked for when
@@ -1576,7 +1576,7 @@ _bfd_clear_contents (reloc_howto_type *howto,
   /* Put the relocated value back in the object file.  */
   write_reloc (input_bfd, x, location, howto);
   return bfd_reloc_ok;
-}
+    }
 
 /*
 DOCDD
@@ -2918,6 +2918,8 @@ ENUMX
   BFD_RELOC_PPC64_ADDR64_LOCAL
 ENUMX
   BFD_RELOC_PPC64_ENTRY
+ENUMX
+  BFD_RELOC_PPC_NEG
 ENUMX
   BFD_RELOC_PPC64_REL24_NOTOC
 ENUMX
@@ -8227,7 +8229,7 @@ bfd_default_reloc_type_lookup (bfd *abfd, bfd_reloc_code_real_type code)
      such as elf32-little.  FIXME: Should we always return NULL?  */
   if (code == BFD_RELOC_CTOR
       && bfd_arch_bits_per_address (abfd) == 32)
-    return &bfd_howto_32;
+	  return &bfd_howto_32;
   return NULL;
 }
 
@@ -8532,7 +8534,7 @@ bfd_generic_get_relocated_section_contents (bfd *abfd,
   free (reloc_vector);
   return data;
 
- error_return:
+error_return:
   free (reloc_vector);
   return NULL;
 }
