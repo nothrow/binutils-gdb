@@ -1253,6 +1253,8 @@ _bfd_xcoff_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
       return &xcoff_howto_table[0];
     case BFD_RELOC_NONE:
       return &xcoff_howto_table[0xf];
+    case BFD_RELOC_PPC_NEG:
+      return &xcoff_howto_table[0x1];
     case BFD_RELOC_PPC_TLSGD:
       return &xcoff_howto_table[0x20];
     case BFD_RELOC_PPC_TLSIE:
