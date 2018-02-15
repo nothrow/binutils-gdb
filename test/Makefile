@@ -3,7 +3,7 @@
 
 SOURCES=$(wildcard *.c) $(wildcard *.cpp) $(wildcard *asm.s)
 ASSEMBLER=$(patsubst %.c,%.s,$(patsubst %.cpp,%.s,$(wildcard *.c) $(wildcard *.cpp)))
-OBJECTS=$(patsubst %.s,%.o,$(patsubst %.c,%.o,$(patsubst %.cpp,%,$(SOURCES))))
+OBJECTS=$(patsubst %.s,%.o,$(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES))))
 BINARIES=$(patsubst %.o,%,$(OBJECTS))
 
 .PHONY: all

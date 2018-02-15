@@ -19,11 +19,14 @@ It creates object files that can be linked with both the AIX linker and the GNU 
 
 However... these results are often wrong:
 
-* [x] 32-bit hello world in C (gcc 6.1.0)
-* [ ] 32-bit exception catching in C++ from assembler (gcc 6.1.0)
+* [x] Compiles 32-bit \*.c and \*.cpp files (gcc 7.3.0)
+* [x] 32-bit hello world in C (gcc 7.3.0)
+* [ ] 32-bit exception catching in C++ from assembler (gcc 7.3.0)
   * Fails with relocation errors
-* [ ] 32-bit exception catching in C++ from source (gcc 6.1.0)
-  * Fails to compile with a segfault
+* [ ] 32-bit exception catching in C++ from source (gcc 7.3.0)
+  * Fails with relocation errors
+* [ ] Compiles 64-bit \*.c and \*.cpp files
+  * Illegal instruction
 * [ ] 64-bit hello world in C
   * Illegal instruction
 * [ ] 64-bit hello world in C++
@@ -46,20 +49,20 @@ $ make install
 
 ## How do I test it?
 
-* Fill the sysroot directory by finding files on an AIX box that has gcc 6.1.0 installed:
+* Fill the sysroot directory by finding files on an AIX box that has gcc 7.3.0 installed:
 
 ```
 AIX $ cd / ; find ./ -name *.o -o -name *.h -o -name *.exp -o -name *.a -name *.so | cpio -oLV > out.cpio
 Linux $ cd $(pwd)/aix6.1-toolchain/sysroot ; cpio -imdV < out.cpio 
 ```
 
-* Build gcc 6.1.0:
+* Build gcc 7.3.0
 
 ```
-$ tar xf gcc-6.1.0.tar.gz
+$ tar xf gcc-7.3.0.tar.gz
 $ mkdir build_gcc
 $ cd build_gcc
-$ ../gcc-6.1.0/configure \
+$ ../gcc-7.3.0/configure \
     --target=powerpc-ibm-aix6.1 \
     --prefix=$(pwd)/../aix6.1-toolchain \
     --with-sysroot=$(pwd)/../aix6.1-toolchain/sysroot \
