@@ -1,2 +1,2 @@
 int a, b;
-int c() { b -= a; }
+int main() { return b -= a; }

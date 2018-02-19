@@ -16,7 +16,7 @@ all:	$(BINARIES)
 	$(CXX) $(<) -S -o $(@)
 
 %.o : %.s
-	$(AS) $(<) -o $(@)
+	$(AS) -mpwr4 $(<) -o $(@)
 
 % : %.o %.s
 	$(CXX) -L$(LIBPATH) -lstdc++ -lgcc_s -Wl,-v -Wl,-blibpath -Wl,/usr/lib:/opt/freeware/lib/pthread $(<) -o $(@)
