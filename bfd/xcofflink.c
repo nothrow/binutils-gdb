@@ -2654,7 +2654,7 @@ xcoff_auto_export_p (struct bfd_link_info *info,
 
 static bfd_boolean
 xcoff_need_ldrel_p (struct bfd_link_info *info, struct internal_reloc *rel,
-		    struct xcoff_link_hash_entry *h)
+		    struct xcoff_link_hash_entry *h, struct internal_reloc *next)
 {
   if (!xcoff_hash_table (info)->loader_section)
     return FALSE;
@@ -2685,8 +2685,15 @@ xcoff_need_ldrel_p (struct bfd_link_info *info, struct internal_reloc *rel,
 
       return TRUE;
 
-    case R_POS:
     case R_NEG:
+      if (next && (next->r_type == R_POS || next->r_type == R_REL))
+      {
+        rel->r_vaddr = 0;
+        next->r_type = R_REL;
+      }
+      return FALSE;
+      // fall through
+    case R_POS:
     case R_RL:
     case R_RLA:
       /* Absolute relocations against absolute symbols can be
@@ -2931,7 +2938,7 @@ xcoff_mark (struct bfd_link_info *info, asection *sec)
       && xcoff_section_data (sec->owner, sec) != NULL)
     {
       struct xcoff_link_hash_entry **syms;
-      struct internal_reloc *rel, *relend;
+      struct internal_reloc *rel, *next, *relend;
       asection **csects;
       unsigned long i, first, last;
 
@@ -2990,7 +2997,8 @@ xcoff_mark (struct bfd_link_info *info, asection *sec)
 
 	      /* See if this reloc needs to be copied into the .loader
 		 section.  */
-	      if (xcoff_need_ldrel_p (info, rel, h))
+	      next = rel + 1 < relend ? rel + 1 : NULL;
+	      if (xcoff_need_ldrel_p (info, rel, h, next))
 		{
 		  ++xcoff_hash_table (info)->ldrel_count;
 		  if (h != NULL)
@@ -4814,7 +4822,7 @@ xcoff_link_input_bfd (struct xcoff_final_link_info *flinfo,
 	{
 	  int target_index;
 	  struct internal_reloc *internal_relocs;
-	  struct internal_reloc *irel;
+	  struct internal_reloc *irel, *next;
 	  bfd_vma offset;
 	  struct internal_reloc *irelend;
 	  struct xcoff_link_hash_entry **rel_hash;
@@ -4982,8 +4990,9 @@ xcoff_link_input_bfd (struct xcoff_final_link_info *flinfo,
 		    }
 		}
 
+	      next = irel + 1 < irelend ? irel + 1 : NULL;
 	      if ((o->flags & SEC_DEBUGGING) == 0
-		  && xcoff_need_ldrel_p (flinfo->info, irel, h))
+		  && xcoff_need_ldrel_p (flinfo->info, irel, h, next))
 		{
 		  asection *sec;
 

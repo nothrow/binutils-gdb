@@ -158,34 +158,34 @@ static xcoff_complain_function xcoff_complain_overflow_unsigned_func;
 xcoff_reloc_function *const
 xcoff_calculate_relocation[XCOFF_MAX_CALCULATE_RELOCATION] =
 {
-  xcoff_reloc_type_pos,  /* R_POS   (0x00) */
-  xcoff_reloc_type_neg,  /* R_NEG   (0x01) */
-  xcoff_reloc_type_rel,  /* R_REL   (0x02) */
-  xcoff_reloc_type_toc,  /* R_TOC   (0x03) */
+  xcoff_reloc_type_pos,	 /* R_POS   (0x00) */
+  xcoff_reloc_type_neg,	 /* R_NEG   (0x01) */
+  xcoff_reloc_type_rel,	 /* R_REL   (0x02) */
+  xcoff_reloc_type_toc,	 /* R_TOC   (0x03) */
   xcoff_reloc_type_toc,  /* R_TRL   (0x04) */
-  xcoff_reloc_type_toc,  /* R_GL    (0x05) */
-  xcoff_reloc_type_toc,  /* R_TCL   (0x06) */
-  xcoff_reloc_type_fail, /*         (0x07) */
-  xcoff_reloc_type_ba,   /* R_BA    (0x08) */
-  xcoff_reloc_type_fail, /*         (0x09) */
-  xcoff_reloc_type_br,   /* R_BR    (0x0a) */
-  xcoff_reloc_type_fail, /*         (0x0b) */
-  xcoff_reloc_type_pos,  /* R_RL    (0x0c) */
-  xcoff_reloc_type_pos,  /* R_RLA   (0x0d) */
-  xcoff_reloc_type_fail, /*         (0x0e) */
+  xcoff_reloc_type_toc,	 /* R_GL    (0x05) */
+  xcoff_reloc_type_toc,	 /* R_TCL   (0x06) */
+  xcoff_reloc_type_fail, /*	    (0x07) */
+  xcoff_reloc_type_ba,	 /* R_BA    (0x08) */
+  xcoff_reloc_type_fail, /*	    (0x09) */
+  xcoff_reloc_type_br,	 /* R_BR    (0x0a) */
+  xcoff_reloc_type_fail, /*	    (0x0b) */
+  xcoff_reloc_type_pos,	 /* R_RL    (0x0c) */
+  xcoff_reloc_type_pos,	 /* R_RLA   (0x0d) */
+  xcoff_reloc_type_fail, /*	    (0x0e) */
   xcoff_reloc_type_noop, /* R_REF   (0x0f) */
-  xcoff_reloc_type_fail, /*         (0x10) */
-  xcoff_reloc_type_fail, /*         (0x11) */
+  xcoff_reloc_type_fail, /*	    (0x10) */
+  xcoff_reloc_type_fail, /*	    (0x11) */
   xcoff_reloc_type_fail, /*         (0x12) */
-  xcoff_reloc_type_toc,  /* R_TRLA  (0x13) */
+  xcoff_reloc_type_toc,	 /* R_TRLA  (0x13) */
   xcoff_reloc_type_fail, /* R_RRTBI (0x14) */
   xcoff_reloc_type_fail, /* R_RRTBA (0x15) */
-  xcoff_reloc_type_ba,   /* R_CAI   (0x16) */
+  xcoff_reloc_type_ba,	 /* R_CAI   (0x16) */
   xcoff_reloc_type_crel, /* R_CREL  (0x17) */
-  xcoff_reloc_type_ba,   /* R_RBA   (0x18) */
-  xcoff_reloc_type_ba,   /* R_RBAC  (0x19) */
-  xcoff_reloc_type_br,   /* R_RBR   (0x1a) */
-  xcoff_reloc_type_ba,   /* R_RBRC  (0x1b) */
+  xcoff_reloc_type_ba,	 /* R_RBA   (0x18) */
+  xcoff_reloc_type_ba,	 /* R_RBAC  (0x19) */
+  xcoff_reloc_type_br,	 /* R_RBR   (0x1a) */
+  xcoff_reloc_type_ba,	 /* R_RBRC  (0x1b) */
   xcoff_reloc_type_fail, /*           (0x1c) */
   xcoff_reloc_type_fail, /*           (0x1d) */
   xcoff_reloc_type_fail, /*           (0x1e) */
@@ -897,7 +897,7 @@ reloc_howto_type xcoff_howto_table[] =
 	 FALSE),		/* pcrel_offset */
 
   /* 0x14: Modifiable relative branch.  */
-  HOWTO (R_RRTBI,		/* type */
+  HOWTO (R_RRTBI,		 /* type */
 	 1,			/* rightshift */
 	 2,			/* size (0 = byte, 1 = short, 2 = long) */
 	 32,			/* bitsize */
@@ -912,7 +912,7 @@ reloc_howto_type xcoff_howto_table[] =
 	 FALSE),		/* pcrel_offset */
 
   /* 0x15: Modifiable absolute branch.  */
-  HOWTO (R_RRTBA,		/* type */
+  HOWTO (R_RRTBA,		 /* type */
 	 1,			/* rightshift */
 	 2,			/* size (0 = byte, 1 = short, 2 = long) */
 	 32,			/* bitsize */
@@ -3660,6 +3660,8 @@ xcoff_ppc_relocate_section (bfd *output_bfd,
 	 the csect including the symbol which it references.  */
       if (rel->r_type == R_REF)
 	continue;
+      if (rel->r_vaddr == 0)
+	continue;
 
       /* Retrieve default value in HOWTO table and fix up according
 	 to r_size field, if it can be different.
@@ -3672,8 +3674,8 @@ xcoff_ppc_relocate_section (bfd *output_bfd,
 	    {
 	    case R_POS:
 	    case R_NEG:
-	      howto.bitsize = (rel->r_size & 0x1f) + 1;
-	      howto.size = howto.bitsize > 16 ? 2 : 1;
+      howto.bitsize = (rel->r_size & 0x1f) + 1;
+      howto.size = howto.bitsize > 16 ? 2 : 1;
 	      howto.src_mask = howto.dst_mask = N_ONES (howto.bitsize);
 	      break;
 
