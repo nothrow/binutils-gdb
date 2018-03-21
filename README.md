@@ -21,8 +21,7 @@ However... these results are often wrong:
 
 * [x] Compiles 32-bit \*.c and \*.cpp files (gcc 7.3.0)
 * [x] 32-bit hello world in C (gcc 7.3.0)
-* [ ] 32-bit exception catching in C++ from assembler (gcc 7.3.0)
-  * Fails with relocation errors
+* [x] 32-bit exception catching in C++ from source (gcc 7.3.0 + IBM linker)
 * [ ] 32-bit exception catching in C++ from source (gcc 7.3.0)
   * Fails with relocation errors
 * [ ] Compiles 64-bit \*.c and \*.cpp files
