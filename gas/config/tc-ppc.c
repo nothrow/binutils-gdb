@@ -6288,16 +6288,13 @@ ppc_can_adjust_to_csect(symbolS *sym)
   return NULL;
 }
 
-/* This is called to see whether a fixup should be adjusted to use a
-   section symbol.  We take the opportunity to change a fixup against
-   a symbol in the TOC subsegment into a reloc against the
-   corresponding .tc symbol.  */
-
+static int
+ppc_fix_adjustable_symbol (fixS *fix, symbolS **symbol, int multiplier);
 int
-ppc_fix_adjustable (fixS *fix)
+ppc_fix_adjustable_symbol (fixS *fix, symbolS **symbol, int multiplier)
 {
-  valueT val = resolve_symbol_value (fix->fx_addsy);
-  segT symseg = S_GET_SEGMENT (fix->fx_addsy);
+  valueT val = resolve_symbol_value (*symbol);
+  segT symseg = S_GET_SEGMENT (*symbol);
   symbolS *csect;
 
   if (symseg == absolute_section)
@@ -6308,7 +6305,7 @@ ppc_fix_adjustable (fixS *fix)
     return 1;
 
   if (ppc_toc_csect != (symbolS *) NULL
-      && fix->fx_addsy != ppc_toc_csect
+      && *symbol != ppc_toc_csect
       && symseg == data_section
       && val >= ppc_toc_frag->fr_address
       && (ppc_after_toc_frag == (fragS *) NULL
@@ -6329,8 +6326,8 @@ ppc_fix_adjustable (fixS *fix)
 	    break;
 	  if (val == resolve_symbol_value (sy))
 	    {
-	      fix->fx_addsy = sy;
-	      fix->fx_addnumber = val - ppc_toc_frag->fr_address;
+	      *symbol = sy;
+        fix->fx_addnumber += multiplier * (val - ppc_toc_frag->fr_address);
 	      return 0;
 	    }
 	}
@@ -6340,31 +6337,39 @@ ppc_fix_adjustable (fixS *fix)
     }
 
   /* Possibly adjust the reloc to be against the csect.  */
-  if ((csect = ppc_can_adjust_to_csect(fix->fx_addsy)) != NULL)
+  if ((csect = ppc_can_adjust_to_csect(*symbol)) != NULL)
     {
-      fix->fx_offset += val - symbol_get_frag (csect)->fr_address;
-      fix->fx_addsy = csect;
-    }
-
-  /* Possibly adjust the reloc to be against the csect.  */
-  if ((csect = ppc_can_adjust_to_csect(fix->fx_subsy)) != NULL)
-    {
-      fix->fx_offset += symbol_get_frag (csect)->fr_address - val;
-      fix->fx_subsy = csect;
+      fix->fx_offset += multiplier * (val - symbol_get_frag (csect)->fr_address);
+      *symbol = csect;
     }
 
   /* Adjust a reloc against a .lcomm symbol to be against the base
      .lcomm.  */
   if (symseg == bss_section
-      && ! S_IS_EXTERNAL (fix->fx_addsy))
+      && ! S_IS_EXTERNAL (*symbol))
     {
-      symbolS *sy = symbol_get_frag (fix->fx_addsy)->fr_symbol;
+      symbolS *sy = symbol_get_frag (*symbol)->fr_symbol;
 
-      fix->fx_offset += val - resolve_symbol_value (sy);
-      fix->fx_addsy = sy;
+      fix->fx_offset += multiplier * (val - resolve_symbol_value (sy));
+      *symbol = sy;
     }
 
   return 0;
+}
+
+/* This is called to see whether a fixup should be adjusted to use a
+   section symbol.  We take the opportunity to change a fixup against
+   a symbol in the TOC subsegment into a reloc against the
+   corresponding .tc symbol.  */
+
+int
+ppc_fix_adjustable (fixS *fix)
+{
+  int r;
+  r = ppc_fix_adjustable_symbol(fix, &fix->fx_addsy, 1);
+  if (r != 0 || !fix->fx_subsy) return r;
+  r = ppc_fix_adjustable_symbol(fix, &fix->fx_subsy, -1);
+  return r;
 }
 
 /* A reloc from one csect to another must be kept.  The assembler
