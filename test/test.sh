@@ -17,4 +17,4 @@ export AS CC CXX LIBPATH
 
 cp ${ROOT}sysroot/opt/freeware/lib/gcc/powerpc-ibm-aix*/*/*.o .
 make clean
-make -k
+make 
