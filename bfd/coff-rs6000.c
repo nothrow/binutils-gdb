@@ -3370,6 +3370,8 @@ xcoff_ppc_relocate_section (bfd *output_bfd,
 	 the csect including the symbol which it references.  */
       if (rel->r_type == R_REF)
 	continue;
+      if (rel->r_vaddr == 0)
+	continue;
 
       /* howto */
       howto.type = rel->r_type;

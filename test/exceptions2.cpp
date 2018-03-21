@@ -16,7 +16,7 @@ main() {
   }
   catch (...) {
   printf(" in catch\n");
-    return 6;
+    return 0;
   }
   printf(" back in main\n");
 return 10;
