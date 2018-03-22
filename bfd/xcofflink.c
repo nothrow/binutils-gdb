@@ -201,7 +201,7 @@ struct xcoff_final_link_info
 
 static bfd_boolean xcoff_mark (struct bfd_link_info *, asection *);
 
-
+static void xcoff_strip_neg_relocs(asection *sec);
 
 /* Routines to read XCOFF dynamic information.  This don't really
    belong here, but we already have the ldsym manipulation routines
@@ -1305,8 +1305,11 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 	{
 	  reloc_info[o->target_index].relocs =
 	    xcoff_read_internal_relocs (abfd, o, TRUE, NULL, FALSE, NULL);
-	  amt = o->reloc_count;
-	  amt *= sizeof (asection *);
+
+    xcoff_strip_neg_relocs(o);
+
+		amt = o->reloc_count;
+		amt *= sizeof (asection *);
 	  reloc_info[o->target_index].csects = bfd_zmalloc (amt);
 	  if (reloc_info[o->target_index].csects == NULL)
 	    goto error_return;
@@ -2648,7 +2651,7 @@ xcoff_auto_export_p (struct bfd_link_info *info,
 
 static bfd_boolean
 xcoff_need_ldrel_p (struct bfd_link_info *info, struct internal_reloc *rel,
-		    struct xcoff_link_hash_entry *h, struct internal_reloc *next)
+		    struct xcoff_link_hash_entry *h)
 {
   if (!xcoff_hash_table (info)->loader_section)
     return FALSE;
@@ -2680,11 +2683,6 @@ xcoff_need_ldrel_p (struct bfd_link_info *info, struct internal_reloc *rel,
       return TRUE;
 
     case R_NEG:
-      if (next && (next->r_type == R_POS || next->r_type == R_REL))
-      {
-        rel->r_vaddr = 0;
-        next->r_type = R_REL;
-      }
       return FALSE;
       // fall through
     case R_POS:
@@ -2904,6 +2902,23 @@ xcoff_mark_symbol_by_name (struct bfd_link_info *info,
   return TRUE;
 }
 
+void xcoff_strip_neg_relocs(asection *sec)
+{
+	struct internal_reloc *rel;
+	rel = xcoff_read_internal_relocs (sec->owner, sec, TRUE, NULL, FALSE, NULL);
+	if (rel == 0 || sec->reloc_count == 0) return;
+
+	for(unsigned int myi = 0 ; myi < sec->reloc_count - 1 ; ++myi)
+	{
+		if (rel[myi].r_type == R_NEG && rel[myi + 1].r_type == R_POS && rel[myi].r_vaddr == rel[myi + 1].r_vaddr)
+		{
+			memmove(rel + myi, rel + myi + 1, (sec->reloc_count - myi - 1) * sizeof(rel[0]));
+			sec->reloc_count -= 1;
+			rel[myi].r_type = R_REL;
+		}
+	}
+}
+
 /* The mark phase of garbage collection.  For a given section, mark
    it, and all the sections which define symbols to which it refers.
    Because this function needs to look at the relocs, we also count
@@ -2924,7 +2939,7 @@ xcoff_mark (struct bfd_link_info *info, asection *sec)
       && xcoff_section_data (sec->owner, sec) != NULL)
     {
       struct xcoff_link_hash_entry **syms;
-      struct internal_reloc *rel, *next, *relend;
+      struct internal_reloc *rel, *relend;
       asection **csects;
       unsigned long i, first, last;
 
@@ -2950,6 +2965,7 @@ xcoff_mark (struct bfd_link_info *info, asection *sec)
 					    NULL, FALSE, NULL);
 	  if (rel == NULL)
 	    return FALSE;
+		
 	  relend = rel + sec->reloc_count;
 	  for (; rel < relend; rel++)
 	    {
@@ -2983,8 +2999,7 @@ xcoff_mark (struct bfd_link_info *info, asection *sec)
 
 	      /* See if this reloc needs to be copied into the .loader
 		 section.  */
-	      next = rel + 1 < relend ? rel + 1 : NULL;
-	      if (xcoff_need_ldrel_p (info, rel, h, next))
+	      if (xcoff_need_ldrel_p (info, rel, h))
 		{
 		  ++xcoff_hash_table (info)->ldrel_count;
 		  if (h != NULL)
@@ -3758,6 +3773,7 @@ bfd_xcoff_size_dynamic_sections (bfd *output_bfd,
 		  if (! xcoff_mark (info, o))
 		    goto error_return;
 		}
+
 	    }
 	}
     }
@@ -3783,7 +3799,7 @@ bfd_xcoff_size_dynamic_sections (bfd *output_bfd,
       xcoff_hash_table (info)->gc = TRUE;
     }
 
-  /* Return special sections to the caller.  */
+	/* Return special sections to the caller.  */
   for (i = 0; i < XCOFF_NUMBER_OF_SPECIAL_SECTIONS; i++)
     {
       sec = xcoff_hash_table (info)->special_sections[i];
@@ -4794,14 +4810,14 @@ xcoff_link_input_bfd (struct xcoff_final_link_info *flinfo,
 	{
 	  int target_index;
 	  struct internal_reloc *internal_relocs;
-	  struct internal_reloc *irel, *next;
+	  struct internal_reloc *irel;
 	  bfd_vma offset;
 	  struct internal_reloc *irelend;
 	  struct xcoff_link_hash_entry **rel_hash;
 	  long r_symndx;
 
 	  /* Read in the relocs.  */
-	  target_index = o->output_section->target_index;
+		target_index = o->output_section->target_index;
 	  internal_relocs = (xcoff_read_internal_relocs
 			     (input_bfd, o, FALSE, flinfo->external_relocs,
 			      TRUE,
@@ -4962,9 +4978,8 @@ xcoff_link_input_bfd (struct xcoff_final_link_info *flinfo,
 		    }
 		}
 
-	      next = irel + 1 < irelend ? irel + 1 : NULL;
 	      if ((o->flags & SEC_DEBUGGING) == 0
-		  && xcoff_need_ldrel_p (flinfo->info, irel, h, next))
+		  && xcoff_need_ldrel_p (flinfo->info, irel, h))
 		{
 		  asection *sec;
 
@@ -6246,8 +6261,8 @@ _bfd_xcoff_bfd_final_link (bfd *abfd, struct bfd_link_info *info)
   external_relocs = bfd_malloc (amt);
   if (external_relocs == NULL && max_output_reloc_count != 0)
     goto error_return;
-
-  for (o = abfd->sections; o != NULL; o = o->next)
+  
+	for (o = abfd->sections; o != NULL; o = o->next)
     {
       struct internal_reloc *irel;
       struct internal_reloc *irelend;
@@ -6311,7 +6326,7 @@ _bfd_xcoff_bfd_final_link (bfd *abfd, struct bfd_link_info *info)
       irelend = irel + o->reloc_count;
       erel = external_relocs;
       for (; irel < irelend; irel++, rel_hash++, erel += relsz)
-	bfd_coff_swap_reloc_out (abfd, (void *) irel, (void *) erel);
+			  bfd_coff_swap_reloc_out (abfd, (void *) irel, (void *) erel);
 
       rel_size = relsz * o->reloc_count;
       if (bfd_seek (abfd, o->rel_filepos, SEEK_SET) != 0
