@@ -2035,6 +2035,7 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 	  BFD_ASSERT (last_real->next == first_csect);
 	  last_real->next = NULL;
 	  flags = (sym.n_sclass == C_EXT ? BSF_GLOBAL : BSF_WEAK);
+      if ((*sym_hash)->root.type == bfd_link_hash_undefweak) flags = BSF_WEAK;
 	  ok = (_bfd_generic_link_add_one_symbol
 		(info, abfd, name, flags, section, value, NULL, copy, TRUE,
 		 (struct bfd_link_hash_entry **) sym_hash));
