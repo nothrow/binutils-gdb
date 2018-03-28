@@ -29,7 +29,10 @@ liba.a : $(SOBJECTS)
 	$(AR) qc $(@) $(^)
 	$(RANLIB) $(@)
 
-% : %.o liba.a %.s
+% : %.o liba.a %.s %.c
+	$(CC) $(CFLAGS) --save-temps $(LIBPATH) -Wl,-blibpath -Wl,/usr/lib:/opt/freeware/lib/pthread $(<) -o $(@) -L. -la
+
+% : %.o liba.a %.s %.cpp
 	$(CXX) $(CXXFLAGS) --save-temps $(LIBPATH) -lstdc++ -lgcc_s -Wl,-blibpath -Wl,/usr/lib:/opt/freeware/lib/pthread $(<) -o $(@) -L. -la
 
 %.txt: %
