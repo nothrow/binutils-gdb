@@ -20,7 +20,7 @@ CXXFLAGS=""
 export AS CC CXX LIBPATH CXXFLAGS AR RANLIB
 
 make clean
-make -k
+make -k -j 4
  
 CFLAGS="-maix64 ${CFLAGS}"
 CXXFLAGS="-maix64 ${CXXFLAGS}"
@@ -28,5 +28,5 @@ export CFLAGS CXXFLAGS
 
 echo "Testing 64-bit"
 make clean
-make -k
+make -k -j 4
 
