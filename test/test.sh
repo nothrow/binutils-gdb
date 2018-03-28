@@ -12,9 +12,9 @@ TARGET=`find ${ROOT}/bin -name *-readelf | sed s/-readelf//g`
 AS="${TARGET}-as"
 CC="${TARGET}-gcc"
 CXX="${TARGET}-g++"
-LIBPATH=${ROOT}/sysroot/opt/freeware/lib/pthread/
-export AS CC CXX LIBPATH
+LIBPATH=-L${ROOT}/sysroot/opt/freeware/lib/pthread/
+CXXFLAGS=""
+export AS CC CXX LIBPATH CXXFLAGS
 
-cp ${ROOT}sysroot/opt/freeware/lib/gcc/powerpc-ibm-aix*/*/*.o .
 make clean
 make -k
