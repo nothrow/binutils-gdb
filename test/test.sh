@@ -13,8 +13,17 @@ AS="${TARGET}-as"
 CC="${TARGET}-gcc"
 CXX="${TARGET}-g++"
 LIBPATH=-L${ROOT}/sysroot/opt/freeware/lib/pthread/
+CFLAGS=""
 CXXFLAGS=""
 export AS CC CXX LIBPATH CXXFLAGS
 
+make clean
+make -k
+
+CFLAGS="-maix64 ${CFLAGS}"
+CXXFLAGS="-maix64 ${CXXFLAGS}"
+export CFLAGS CXXFLAGS
+
+echo "Testing 64-bit"
 make clean
 make -k
