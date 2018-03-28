@@ -227,7 +227,7 @@ xcoff_get_section_contents (bfd *abfd, asection *sec)
 
       if (! bfd_malloc_and_get_section (abfd, sec, &contents))
 	{
-	  free (contents);
+	    free (contents);
 	  return FALSE;
 	}
       coff_section_data (abfd, sec)->contents = contents;
@@ -2029,6 +2029,7 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 	  BFD_ASSERT (last_real->next == first_csect);
 	  last_real->next = NULL;
 	  flags = (sym.n_sclass == C_EXT ? BSF_GLOBAL : BSF_WEAK);
+      if ((*sym_hash)->root.type == bfd_link_hash_undefweak) flags = BSF_WEAK;
 	  ok = (_bfd_generic_link_add_one_symbol
 		(info, abfd, name, flags, section, value, NULL, copy, TRUE,
 		 (struct bfd_link_hash_entry **) sym_hash));
@@ -2190,9 +2191,9 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 
       /* Free up the line numbers.  FIXME: We could cache these
 	 somewhere for the final link, to avoid reading them again.  */
-      free (reloc_info[o->target_index].linenos);
-      reloc_info[o->target_index].linenos = NULL;
-    }
+	  free (reloc_info[o->target_index].linenos);
+	  reloc_info[o->target_index].linenos = NULL;
+	}
 
   free (reloc_info);
 
@@ -2205,8 +2206,8 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
     {
       for (o = abfd->sections; o != NULL; o = o->next)
 	{
-	  free (reloc_info[o->target_index].csects);
-	  free (reloc_info[o->target_index].linenos);
+	    free (reloc_info[o->target_index].csects);
+	    free (reloc_info[o->target_index].linenos);
 	}
       free (reloc_info);
     }
@@ -2699,7 +2700,7 @@ xcoff_need_ldrel_p (struct bfd_link_info *info, struct internal_reloc *rel,
 	  if (bfd_is_abs_section (sec)
 	      || (sec != NULL
 		  && bfd_is_abs_section (sec->output_section)))
-	    return FALSE;
+	return FALSE;
 	}
       return TRUE;
     }
@@ -3999,8 +4000,8 @@ bfd_xcoff_size_dynamic_sections (bfd *output_bfd,
   return TRUE;
 
  error_return:
-  free (ldinfo.strings);
-  free (debug_contents);
+    free (ldinfo.strings);
+    free (debug_contents);
   return FALSE;
 }
 
@@ -6223,16 +6224,16 @@ _bfd_xcoff_bfd_final_link (bfd *abfd, struct bfd_link_info *info)
     }
 
   /* Free up the buffers used by xcoff_link_input_bfd.  */
-  free (flinfo.internal_syms);
-  flinfo.internal_syms = NULL;
-  free (flinfo.sym_indices);
-  flinfo.sym_indices = NULL;
-  free (flinfo.linenos);
-  flinfo.linenos = NULL;
-  free (flinfo.contents);
-  flinfo.contents = NULL;
-  free (flinfo.external_relocs);
-  flinfo.external_relocs = NULL;
+      free (flinfo.internal_syms);
+      flinfo.internal_syms = NULL;
+      free (flinfo.sym_indices);
+      flinfo.sym_indices = NULL;
+      free (flinfo.linenos);
+      flinfo.linenos = NULL;
+      free (flinfo.contents);
+      flinfo.contents = NULL;
+      free (flinfo.external_relocs);
+      flinfo.external_relocs = NULL;
 
   /* The value of the last C_FILE symbol is supposed to be -1.  Write
      it out again.  */
@@ -6251,8 +6252,8 @@ _bfd_xcoff_bfd_final_link (bfd *abfd, struct bfd_link_info *info)
      input files.  */
   bfd_hash_traverse (&info->hash->table, xcoff_write_global_symbol, &flinfo);
 
-  free (flinfo.outsyms);
-  flinfo.outsyms = NULL;
+      free (flinfo.outsyms);
+      flinfo.outsyms = NULL;
 
   /* Now that we have written out all the global symbols, we know the
      symbol indices to use for relocs against them, and we can finally
@@ -6334,8 +6335,8 @@ _bfd_xcoff_bfd_final_link (bfd *abfd, struct bfd_link_info *info)
 	goto error_return;
     }
 
-  free (external_relocs);
-  external_relocs = NULL;
+      free (external_relocs);
+      external_relocs = NULL;
 
   /* Free up the section information.  */
   if (flinfo.section_info != NULL)
@@ -6344,8 +6345,8 @@ _bfd_xcoff_bfd_final_link (bfd *abfd, struct bfd_link_info *info)
 
       for (i = 0; i < abfd->section_count; i++)
 	{
-	  free (flinfo.section_info[i].relocs);
-	  free (flinfo.section_info[i].rel_hashes);
+	    free (flinfo.section_info[i].relocs);
+	    free (flinfo.section_info[i].rel_hashes);
 	}
       free (flinfo.section_info);
       flinfo.section_info = NULL;
@@ -6440,18 +6441,18 @@ _bfd_xcoff_bfd_final_link (bfd *abfd, struct bfd_link_info *info)
 
       for (i = 0; i < abfd->section_count; i++)
 	{
-	  free (flinfo.section_info[i].relocs);
-	  free (flinfo.section_info[i].rel_hashes);
+	    free (flinfo.section_info[i].relocs);
+	    free (flinfo.section_info[i].rel_hashes);
 	}
       free (flinfo.section_info);
     }
 
-  free (flinfo.internal_syms);
-  free (flinfo.sym_indices);
-  free (flinfo.outsyms);
-  free (flinfo.linenos);
-  free (flinfo.contents);
-  free (flinfo.external_relocs);
-  free (external_relocs);
+    free (flinfo.internal_syms);
+    free (flinfo.sym_indices);
+    free (flinfo.outsyms);
+    free (flinfo.linenos);
+    free (flinfo.contents);
+    free (flinfo.external_relocs);
+    free (external_relocs);
   return FALSE;
 }
