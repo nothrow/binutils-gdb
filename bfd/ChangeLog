@@ -1,4 +1,9 @@
+﻿2021-03-12  Clément Chigot  <clement.chigot@atos.net>
 2017-03-02  Tristan Gingold  <gingold@adacore.com>
+
+	* coff64-rs6000.c (xcoff64_create_csect_from_smclas): Add
+	missing smclass.
+
 
 	* version.m4: Bump version to 2.28
 	* configure: Regenerate.
