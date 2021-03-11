@@ -4349,6 +4349,8 @@ coff_write_object_contents (bfd * abfd)
 	    case bfd_arch_powerpc:
 	      if (bfd_get_mach (abfd) == bfd_mach_ppc)
 		internal_a.o_cputype = 3;
+	      else if (bfd_get_mach (abfd) == bfd_mach_ppc_620)
+		internal_a.o_cputype = 2;
 	      else
 		internal_a.o_cputype = 1;
 	      break;
@@ -4418,12 +4420,13 @@ coff_write_object_contents (bfd * abfd)
 #endif
     }
 #ifdef RS6000COFF_C
+#ifndef XCOFF64
   else
     {
       AOUTHDR buff;
       size_t size;
 
-      /* XCOFF seems to always write at least a small a.out header.  */
+      /* XCOFF32 seems to always write at least a small a.out header.  */
       coff_swap_aouthdr_out (abfd, & internal_a, & buff);
       if (xcoff_data (abfd)->full_aouthdr)
 	size = bfd_coff_aoutsz (abfd);
@@ -4432,6 +4435,7 @@ coff_write_object_contents (bfd * abfd)
       if (bfd_bwrite (& buff, (bfd_size_type) size, abfd) != size)
 	return FALSE;
     }
+#endif
 #endif
 
   return TRUE;
