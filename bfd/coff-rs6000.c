@@ -211,8 +211,8 @@ bfd_boolean (*xcoff_calculate_relocation[XCOFF_MAX_CALCULATE_RELOCATION])
   xcoff_reloc_type_fail, /*           (0x2d) */
   xcoff_reloc_type_fail, /*           (0x2e) */
   xcoff_reloc_type_fail, /*           (0x2f) */
-  xcoff_reloc_type_fail, /* R_TOCU    (0x30) */
-  xcoff_reloc_type_fail, /* R_TOCL    (0x31) */
+  xcoff_reloc_type_toc,  /* R_TOCU    (0x30) */
+  xcoff_reloc_type_toc,  /* R_TOCL    (0x31) */
 };
 
 bfd_boolean (*xcoff_complain_overflow[XCOFF_MAX_COMPLAIN_OVERFLOW])
@@ -751,7 +751,7 @@ reloc_howto_type xcoff_howto_table[] =
 	 0,			/* special_function */
 	 "R_TOC",		/* name */
 	 TRUE,			/* partial_inplace */
-	 0xffff,		/* src_mask */
+	 0,			/* src_mask */
 	 0xffff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
 
@@ -766,7 +766,7 @@ reloc_howto_type xcoff_howto_table[] =
 	 0,			/* special_function */
 	 "R_TRL",		/* name */
 	 TRUE,			/* partial_inplace */
-	 0xffff,		/* src_mask */
+	 0,			/* src_mask */
 	 0xffff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
 
@@ -781,7 +781,7 @@ reloc_howto_type xcoff_howto_table[] =
 	 0,			/* special_function */
 	 "R_GL",		/* name */
 	 TRUE,			/* partial_inplace */
-	 0xffff,		/* src_mask */
+	 0,			/* src_mask */
 	 0xffff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
 
@@ -796,7 +796,7 @@ reloc_howto_type xcoff_howto_table[] =
 	 0,			/* special_function */
 	 "R_TCL",		/* name */
 	 TRUE,			/* partial_inplace */
-	 0xffff,		/* src_mask */
+	 0,			/* src_mask */
 	 0xffff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
 
@@ -898,7 +898,7 @@ reloc_howto_type xcoff_howto_table[] =
 	 0,			/* special_function */
 	 "R_TRLA",		/* name */
 	 TRUE,			/* partial_inplace */
-	 0xffff,		/* src_mask */
+	 0,			/* src_mask */
 	 0xffff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
 
@@ -1099,10 +1099,34 @@ reloc_howto_type xcoff_howto_table[] =
   EMPTY_HOWTO(0x2f),
 
   /* 0x30: High-order 16 bit TOC relative relocation.  */
-  EMPTY_HOWTO (R_TOCU),
+  HOWTO (R_TOCU,		/* type */
+	 16,			/* rightshift */
+	 1,			/* size (0 = byte, 1 = short, 2 = long) */
+	 16,			/* bitsize */
+	 FALSE,			/* pc_relative */
+	 0,			/* bitpos */
+	 complain_overflow_bitfield, /* complain_on_overflow */
+	 0,			/* special_function */
+	 "R_TOCU",		/* name */
+	 TRUE,			/* partial_inplace */
+	 0,			/* src_mask */
+	 0xffff,		/* dst_mask */
+	 FALSE),		/* pcrel_offset */
 
   /* 0x31: Low-order 16 bit TOC relative relocation.  */
-  EMPTY_HOWTO (R_TOCL),
+  HOWTO (R_TOCL,		/* type */
+	 0,			/* rightshift */
+	 1,			/* size (0 = byte, 1 = short, 2 = long) */
+	 16,			/* bitsize */
+	 FALSE,			/* pc_relative */
+	 0,			/* bitpos */
+	 complain_overflow_dont, /* complain_on_overflow */
+	 0,			/* special_function */
+	 "R_TOCL",		/* name */
+	 TRUE,			/* partial_inplace */
+	 0,			/* src_mask */
+	 0xffff,		/* dst_mask */
+	 FALSE),		/* pcrel_offset */
 
 };
 
@@ -1151,6 +1175,10 @@ _bfd_xcoff_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
       return &xcoff_howto_table[8];
     case BFD_RELOC_PPC_TOC16:
       return &xcoff_howto_table[3];
+    case BFD_RELOC_PPC_TOC16_HI:
+      return &xcoff_howto_table[0x30];
+    case BFD_RELOC_PPC_TOC16_LO:
+      return &xcoff_howto_table[0x31];
     case BFD_RELOC_16:
       /* Note that this relocation is only internally used by gas.  */
       return &xcoff_howto_table[0xc];
@@ -2856,15 +2884,15 @@ xcoff_reloc_type_rel (bfd *input_bfd ATTRIBUTE_UNUSED,
 
 bfd_boolean
 xcoff_reloc_type_toc (bfd *input_bfd,
-                      asection *input_section ATTRIBUTE_UNUSED,
-                      bfd *output_bfd,
-                      struct internal_reloc *rel,
-                      struct internal_syment *sym,
-                      struct reloc_howto_struct *howto ATTRIBUTE_UNUSED,
-                      bfd_vma val,
-                      bfd_vma addend ATTRIBUTE_UNUSED,
-                      bfd_vma *relocation,
-                      bfd_byte *contents ATTRIBUTE_UNUSED)
+		      asection *input_section ATTRIBUTE_UNUSED,
+		      bfd *output_bfd,
+		      struct internal_reloc *rel,
+		      struct internal_syment *sym ATTRIBUTE_UNUSED,
+		      struct reloc_howto_struct *howto ATTRIBUTE_UNUSED,
+		      bfd_vma val,
+		      bfd_vma addend ATTRIBUTE_UNUSED,
+		      bfd_vma *relocation,
+		      bfd_byte *contents ATTRIBUTE_UNUSED)
 {
   struct xcoff_link_hash_entry *h;
 
@@ -2891,8 +2919,16 @@ xcoff_reloc_type_toc (bfd *input_bfd,
 	      + h->toc_section->output_offset);
     }
 
-  *relocation = ((val - xcoff_data (output_bfd)->toc)
-		 - (sym->n_value - xcoff_data (input_bfd)->toc));
+  /* We can't use the preexisting value written down by the
+     assembly, as R_TOCU needs to be adjusted when the final
+     R_TOCL value is signed.  */
+  *relocation = val - xcoff_data (output_bfd)->toc;
+
+  if (rel->r_type == R_TOCU)
+    *relocation = ((*relocation + 0x8000) >> 16) & 0xffff;
+  if (rel->r_type == R_TOCL)
+    *relocation = *relocation & 0x0000ffff;
+
   return TRUE;
 }
 
@@ -3255,8 +3291,6 @@ xcoff_complain_overflow_unsigned_func (bfd *input_bfd,
    quite figure out when this is useful.  These relocs are
    not defined by the PowerOpen ABI.
 
-   R_TOCU
-   R_TOCL
    R_TLS
    R_TLS_IE
    R_TLS_LD
@@ -3358,6 +3392,14 @@ xcoff_complain_overflow_unsigned_func (bfd *input_bfd,
    The PowerPC ABI defines this as an absolute branch to a
    fixed address which may be modified to a relative branch.
    The PowerOpen ABI does not define this relocation type.
+
+   R_TOCU:
+   Upper TOC relative relocation. The value is the
+   high-order 16 bit of a TOC relative relocation.
+
+   R_TOCL:
+   Lower TOC relative relocation. The value is the
+   low-order 16 bit of a TOC relative relocation.
 */
 
 bfd_boolean
