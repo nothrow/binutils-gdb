@@ -1,4 +1,8 @@
+2021-03-12  Clément Chigot  <clement.chigot@atos.net>
 2021-02-06  Nick Clifton  <nickc@redhat.com>
+
+	* od-xcoff.c: Replace RTB by TRL entry.
+
 
 	This is the 2.36.1 release.
 	* configure: Regenerate.
