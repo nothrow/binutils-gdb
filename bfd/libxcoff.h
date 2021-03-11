@@ -234,6 +234,7 @@ bfd_boolean xcoff_reloc_type_rel  (XCOFF_RELOC_FUNCTION_ARGS);
 bfd_boolean xcoff_reloc_type_toc  (XCOFF_RELOC_FUNCTION_ARGS);
 bfd_boolean xcoff_reloc_type_ba   (XCOFF_RELOC_FUNCTION_ARGS);
 bfd_boolean xcoff_reloc_type_crel (XCOFF_RELOC_FUNCTION_ARGS);
+bfd_boolean xcoff_reloc_type_tls (XCOFF_RELOC_FUNCTION_ARGS);
 
 /* Structure to describe dwarf sections.
    Useful to convert from XCOFF section name to flag and vice-versa.

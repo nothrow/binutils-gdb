@@ -1812,6 +1812,12 @@ xcoff_link_add_symbols (bfd *abfd, struct bfd_link_info *info)
 	      csect = bfd_make_section_anyway_with_flags (abfd, ".td",
 							  SEC_ALLOC);
 	    }
+	  else if (aux.x_csect.x_smclas == XMC_UL)
+	    {
+	      /* This is a thread-local unitialized csect.  */
+	      csect = bfd_make_section_anyway_with_flags (abfd, ".tbss",
+							  SEC_ALLOC | SEC_THREAD_LOCAL);
+	    }
 	  else
 	    csect = bfd_make_section_anyway_with_flags (abfd, ".bss",
 							SEC_ALLOC);
@@ -2698,6 +2704,14 @@ xcoff_need_ldrel_p (struct bfd_link_info *info, struct internal_reloc *rel,
 	  && bfd_is_abs_section (h->root.u.def.section))
 	return FALSE;
 
+      return TRUE;
+
+    case R_TLS:
+    case R_TLS_LE:
+    case R_TLS_IE:
+    case R_TLS_LD:
+    case R_TLSM:
+    case R_TLSML:
       return TRUE;
     }
 }
@@ -4080,6 +4094,10 @@ xcoff_create_ldrel (bfd *output_bfd, struct xcoff_final_link_info *flinfo,
 	ldrel.l_symndx = 1;
       else if (strcmp (secname, ".bss") == 0)
 	ldrel.l_symndx = 2;
+      else if (strcmp (secname, ".tdata") == 0)
+	ldrel.l_symndx = -1;
+      else if (strcmp (secname, ".tbss") == 0)
+	ldrel.l_symndx = -2;
       else
 	{
 	  _bfd_error_handler

@@ -206,6 +206,7 @@ do {								\
 extern void ppc_xcoff_end (void);
 #define md_end ppc_xcoff_end
 
+
 #define tc_new_dot_label(sym) ppc_new_dot_label (sym)
 extern void ppc_new_dot_label (symbolS *);
 
