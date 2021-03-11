@@ -1,3 +1,8 @@
+﻿2021-03-12  Clément Chigot  <clement.chigot@atos.net>
+
+	* coff64-rs6000.c (xcoff64_create_csect_from_smclas): Add
+	missing smclass.
+
 2021-02-06  Nick Clifton  <nickc@redhat.com>
 
 	This is the 2.36.1 release.
