@@ -6333,7 +6333,7 @@ ppc_fix_adjustable_symbol (fixS *fix, symbolS **symbol, int multiplier)
       as_bad_where (fix->fx_file, fix->fx_line,
 		    _("symbol in .toc does not match any .tc"));
     }
-
+  TC_SYMFIELD_TYPE *tc;
   /* Possibly adjust the reloc to be against the csect.  */
   tc = symbol_get_tc (fix->fx_addsy);
   if (tc->subseg == 0
