@@ -148,6 +148,12 @@ static int show_version = 0;
 
 static int show_help = 0;
 
+#if BFD_SUPPORTS_PLUGINS
+static const char *plugin_target = "plugin";
+#else
+static const char *plugin_target = NULL;
+#endif
+
 static const char *target = NULL;
 
 enum long_option_numbers
@@ -966,7 +972,7 @@ open_inarch (const char *archive_filename, const char *file)
   bfd_set_error (bfd_error_no_error);
 
   if (target == NULL)
-    target = bfd_find_target("default", NULL)->name;
+    target = plugin_target;
 
   if (stat (archive_filename, &sbuf) != 0)
     {
